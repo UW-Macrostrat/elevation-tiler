@@ -1,15 +1,18 @@
 from fastapi import FastAPI, HTTPException, Request
 import httpx
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
+base_url = os.environ.get("PROXY_TILE_LAYER")
 
 
 @app.get("/tiles/{z}/{x}/{y}")
 async def get_tile(request: Request, z: int, x: int, y: int):
     try:
         # Replace the URL with the actual tile server URL
-        base_url = os.environ.get("PROXY_TILE_LAYER")
         tile_url = base_url.format(z=z, x=x, y=y)
 
         async with httpx.AsyncClient() as client:
@@ -28,10 +31,6 @@ async def get_tile(request: Request, z: int, x: int, y: int):
         raise HTTPException(status_code=404, detail="Tile not found")
 
 
-if __name__ == "__main__":
-    from dotenv import load_dotenv
-    import uvicorn
-
-    load_dotenv()
-
-    uvicorn.run(app)
+@app.get("/")
+async def root():
+    return {"proxy-url": base_url}
