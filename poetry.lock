@@ -1200,6 +1200,29 @@ pygments = ">=2.13.0,<3.0.0"
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
+name = "rio-cogeo"
+version = "5.3.0"
+description = "Cloud Optimized GeoTIFF (COGEO) creation plugin for rasterio"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "rio_cogeo-5.3.0-py3-none-any.whl", hash = "sha256:2b7e3bb310ef03fecbb19ec80e973e4c65a8bf789990a77c8a8f6b2431d15d7c"},
+    {file = "rio_cogeo-5.3.0.tar.gz", hash = "sha256:f67ff03f91d3a8ccd2004f02b097f841959a98ddae20e5ead0f8d627a41cab46"},
+]
+
+[package.dependencies]
+click = ">=7.0"
+morecantile = ">=5.0,<6.0"
+numpy = ">=1.15,<2.0"
+pydantic = ">=2.0,<3.0"
+rasterio = ">=1.3.3"
+
+[package.extras]
+dev = ["pre-commit"]
+docs = ["mkdocs", "mkdocs-material"]
+test = ["cogdumper", "pytest", "pytest-cov"]
+
+[[package]]
 name = "rio-mucho"
 version = "1.0.0"
 description = "Windowed multiprocessing wrapper for rasterio"
@@ -1710,4 +1733,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "fcd6dbae6584f72b92843192c48147d3c875e6229669cbd69e344eb94efb4692"
+content-hash = "16496d4d23cb8375270cca7dd32f762390ece032cb87f78a176f029cb0b91f7b"
