@@ -36,12 +36,15 @@ with COGReader(input_path) as reader:
         width=img.array.shape[2],
         height=img.array.shape[1],
     )
+    nodata = img.array.fill_value
+
     profile = dict(
         driver="GTiff",
         crs=img.crs,
         count=img.count,
         dtype=img.array.dtype,
         transform=from_bounds(*img.bounds, **size),
+        nodata=nodata,
         **size,
     )
 
