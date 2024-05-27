@@ -6,12 +6,12 @@ from pathlib import Path
 import numpy as N
 
 
-def get_raster_tile(dataset: Path, z: int, x: int, y: int):
+def get_raster_tile(dataset: Path, z: int, x: int, y: int, tilesize: int = 512):
     """Get a tile of a raster dataset in terrain RGB format."""
 
     # Create a COGReader object
     with COGReader(dataset) as reader:
-        img = reader.tile(x, y, z, tilesize=512)
+        img = reader.tile(x, y, z, tilesize=tilesize)
         return convert_to_rgb(img)
 
 

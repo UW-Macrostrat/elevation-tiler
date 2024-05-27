@@ -16,6 +16,11 @@ load_dotenv()
 app = FastAPI()
 base_url = os.environ.get("PROXY_TILE_LAYER")
 overlay_dataset = os.environ.get("OVERLAY_DATASET")
+tilesize = 512
+try:
+    tilesize = int(os.environ.get("PROXY_TILE_SIZE", "512"))
+except ValueError:
+    pass
 
 
 @app.get("/tiles/{z}/{x}/{y}")
@@ -23,7 +28,7 @@ async def get_tile(request: Request, z: int, x: int, y: int):
 
     overlay = None
     try:
-        overlay = get_raster_tile(overlay_dataset, z, x, y)
+        overlay = get_raster_tile(overlay_dataset, z, x, y, tilesize=tilesize)
         if not overlay.array.mask.any():
             # The overlay fully covers the tile, so there is no need to fetch the base tile
             return Response(
@@ -34,6 +39,7 @@ async def get_tile(request: Request, z: int, x: int, y: int):
 
     # Get the base tile
     tile_url = base_url.format(z=z, x=x, y=y)
+    print(tile_url)
 
     try:
         # Replace the URL with the actual tile server URL
