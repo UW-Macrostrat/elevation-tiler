@@ -12,13 +12,15 @@ def get_raster_tile(dataset: Path, z: int, x: int, y: int):
     # Create a COGReader object
     with COGReader(dataset) as reader:
         img = reader.tile(x, y, z, tilesize=512)
-        # Convert NaNs to zeros
-        # Fill all NaN values with zeros
-        src = img.array[0]
+        return convert_to_rgb(img)
 
-        rgb = data_to_rgb(src, -10000, 0.1)
-        # Stack three copies of the mask
-        mask = N.stack([src.mask] * 3, axis=-1)
-        masked = N.ma.masked_array(rgb, mask=mask)
-        new_image = ImageData(masked)
-        return new_image
+
+def convert_to_rgb(img: ImageData) -> ImageData:
+    """Convert a DEM tile to a terrain RGB tile."""
+    mask = img.array.mask
+
+    # Create a three-band mask
+    mask = N.stack([mask] * 3, axis=0)
+    rgb = data_to_rgb(img.array[0], -10000, 0.1)
+    rgb = N.ma.array(rgb, mask=mask)
+    return ImageData(rgb)

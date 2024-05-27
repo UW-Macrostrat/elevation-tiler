@@ -6,6 +6,8 @@ from rio_tiler.errors import TileOutsideBounds
 import numpy as N
 from PIL import Image
 from io import BytesIO
+from elevation_tiler import create_image_from_bytes, merge_base_image_with_overlay
+from rio_rgbify.encoders import _decode
 
 here = Path(__file__).parent
 dataset = here / "fixtures" / "dem-14-8924-9338-buffered.tif"
@@ -24,6 +26,14 @@ def test_acquire_rgb_tile_from_cog():
 
     # Check that the mask is all False
     assert not img.array.mask.any()
+
+
+def test_pixel_value_recovery_from_cog():
+    tile = Tile(z=14, x=8924, y=9338)
+    img = get_raster_tile(dataset, tile.z, tile.x, tile.y)
+    png = img.render(add_mask=False)
+    img1 = create_image_from_bytes(png)
+    assert N.allclose(img1.array.data, img.array.data)
 
 
 def test_partially_overlapping_tile_from_cog():
@@ -89,3 +99,48 @@ def test_overlay_cog_on_png():
         assert arr.shape == (512, 512, 3)
         arr = arr.transpose(2, 0, 1)
         assert N.allclose(arr, img_new.array.data)
+
+
+def test_overlay_cog_on_png_internal():
+    # Get the from the COG with overlay
+    tile = Tile(z=14, x=8925, y=9338)
+    img = get_raster_tile(dataset, tile.z, tile.x, tile.y)
+
+    png = here / "fixtures" / "mapbox-14-8925-9338.png"
+    with open(png, "rb") as f:
+        _bytes = f.read()
+    base = create_image_from_bytes(_bytes)
+
+    assert N.allclose(img.array.shape, base.array.shape)
+
+    # Fill the masked value with the base image
+    img_new = merge_base_image_with_overlay(base, img)
+
+    # Write to an in-memory PNG
+    _bytes = img_new.render(add_mask=False)
+
+    # Try reading the PNG back in
+    img2 = create_image_from_bytes(_bytes)
+    assert N.allclose(img2.array.data, img_new.array.data)
+
+    # Test that we get reasonable elevations
+    arr = img_new.array
+
+    # Check that there are no masked values in either image
+    assert not N.any(base.array.mask)
+    assert not N.any(img_new.array.mask)
+
+    base_elevations = reconstruct_elevation(base.array)
+    # Check that the base elevations are within a reasonable range
+    assert base_elevations.min() > 0
+    assert base_elevations.max() < 2500
+
+    elevations = reconstruct_elevation(arr)
+
+    # Check that the elevations are within a reasonable range
+    assert elevations.min() > 0
+    assert elevations.max() < 2500
+
+
+def reconstruct_elevation(arr):
+    return _decode(arr, -10000, 0.1)
