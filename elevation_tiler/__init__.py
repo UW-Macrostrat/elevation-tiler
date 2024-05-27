@@ -8,6 +8,7 @@ from rio_tiler.models import ImageData
 from PIL import Image
 from io import BytesIO
 import numpy as N
+from contextvars import ContextVar
 
 from .cog_layer import get_raster_tile
 
@@ -16,51 +17,56 @@ load_dotenv()
 app = FastAPI()
 base_url = os.environ.get("PROXY_TILE_LAYER")
 overlay_dataset = os.environ.get("OVERLAY_DATASET")
-tilesize = 512
-try:
-    tilesize = int(os.environ.get("PROXY_TILE_SIZE", "512"))
-except ValueError:
-    pass
+
+_tilesize = ContextVar("tilesize", default=None)
 
 
 @app.get("/tiles/{z}/{x}/{y}")
 async def get_tile(request: Request, z: int, x: int, y: int):
-
+    tile_url = base_url.format(z=z, x=x, y=y)
+    base = None
     overlay = None
+    tilesize = _tilesize.get()
+    if tilesize is None:
+        # We haven't set the tilesize yet, so we need to load a tile to get the size
+        base = await get_base_tile(tile_url, dict(request.query_params))
+        # Set the tilesize from this request
+        _img = create_image_from_bytes(base.content)
+        _tilesize.set(_img.array.shape[1])
+        tilesize = _tilesize.get()
+
     try:
         overlay = get_raster_tile(overlay_dataset, z, x, y, tilesize=tilesize)
-        if not overlay.array.mask.any():
-            # The overlay fully covers the tile, so there is no need to fetch the base tile
-            return Response(
-                content=overlay.render(add_mask=False), media_type="image/png"
-            )
     except TileOutsideBounds:
         pass
 
-    # Get the base tile
-    tile_url = base_url.format(z=z, x=x, y=y)
-    print(tile_url)
+    if overlay is not None and not overlay.array.mask.any():
+        # The overlay fully covers the tile, so there is no need to fetch the base tile
+        return Response(content=overlay.render(add_mask=False), media_type="image/png")
 
+    # Get the base tile if we haven't already
+    if base is None:
+        base = await get_base_tile(tile_url, dict(request.query_params))
+
+    if overlay is None:
+        # There is no overlay content, so just return the base tile
+        return Response(content=base.content, headers=base.headers)
+
+    # Merge the base image with the overlay
+    base_img = create_image_from_bytes(base.content)
+    img = merge_base_image_with_overlay(base_img, overlay)
+    content = img.render(add_mask=False)
+    return Response(content=content)
+
+
+async def get_base_tile(url: str, params: dict) -> Response:
     try:
-        # Replace the URL with the actual tile server URL
         async with httpx.AsyncClient() as client:
-            # Pass query parameters to the upstream server
-            params = dict(request.query_params)
-            response = await client.get(tile_url, headers={}, params=params)
+            response = await client.get(url, params=params)
             response.raise_for_status()
-
-            if overlay is None:
-                # There is no overlay content, so just return the base tile
-                return Response(content=response.content, headers=response.headers)
-
-            # Merge the base image with the overlay
-            base = create_image_from_bytes(response.content)
-            img = merge_base_image_with_overlay(base, overlay)
-            content = img.render(add_mask=False)
-            return Response(content=content)
-
+            return response
     except httpx.HTTPError:
-        raise HTTPException(status_code=404, detail="Tile not found for basemap")
+        raise HTTPException(status_code=404, detail="Tile not found")
 
 
 def create_image_from_bytes(_bytes: bytes) -> ImageData:
