@@ -62,6 +62,7 @@ async def get_tile(request: Request, z: int, x: int, y: int):
 async def get_base_tile(url: str, params: dict) -> Response:
     try:
         async with httpx.AsyncClient() as client:
+            print(url)
             response = await client.get(url, params=params)
             response.raise_for_status()
             return response
