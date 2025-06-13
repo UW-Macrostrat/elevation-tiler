@@ -5,7 +5,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install Poetry
-RUN pip install --no-cache-dir poetry==2.*
+RUN pip install --no-cache-dir poetry==2.1.1
 
 # Copy only the dependency files first to leverage Docker's caching
 COPY pyproject.toml poetry.lock ./
