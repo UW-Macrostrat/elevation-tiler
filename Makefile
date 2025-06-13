@@ -1,5 +1,13 @@
 all:
-	poetry run fastapi dev elevation_tiler
+	uv run fastapi dev elevation_tiler
 
 test:
-	poetry run pytest
+	uv run pytest
+
+build:
+	# Get version from pyproject.toml
+	docker build -t elevation-tiler:v$(shell uv version --short) .
+
+run-docker:
+	make build
+	docker run -p 8000:8000 --env-file .env -v data:/app/data elevation-tiler:v$(shell uv version --short)

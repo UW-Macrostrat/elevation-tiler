@@ -12,7 +12,10 @@ def get_raster_tile(dataset: Path, z: int, x: int, y: int, tilesize: int = 512):
     # If we have an odd tilesize, interpret it as a buffer
     # Nearest power of 2
     base_tilesize = tilesize & (tilesize - 1)
-    buffer = (tilesize - base_tilesize) / 2
+    buffer = 0
+    if base_tilesize == 0:
+        base_tilesize = tilesize
+        buffer = (tilesize - base_tilesize) / 2
 
     # Create a COGReader object
     with COGReader(dataset) as reader:
