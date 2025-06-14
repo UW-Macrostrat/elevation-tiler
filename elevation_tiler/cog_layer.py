@@ -16,7 +16,7 @@ def get_raster_tile(dataset: Path|str, z: int, x: int, y: int, tilesize: int = 5
 
     # Create a COGReader object
     with COGReader(dataset) as reader:
-        img = reader.tile(x, y, z, tilesize=base_tilesize, buffer=buffer)
+        img = reader.tile(x, y, z, tilesize=base_tilesize, buffer=buffer, resampling_method="bilinear")
         return convert_to_rgb(img)
 
 

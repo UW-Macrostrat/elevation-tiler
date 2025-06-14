@@ -20,7 +20,7 @@ load_dotenv()
 log = getLogger("uvicorn.error")
 
 app = FastAPI()
-overlay_dataset = os.environ.get("OVERLAY_DATASET")
+default_overlay_dataset = os.environ.get("OVERLAY_DATASET", None)
 
 _tilesize = ContextVar("tilesize", default=None)
 
@@ -32,6 +32,11 @@ async def get_tile(request: Request, z: int, x: int, y: int, ext: Optional[str] 
     params = dict(request.query_params)
 
     tile_url = params.pop("x-fallback-url")
+
+    overlay_dataset = params.pop("x-overlay-dataset", default_overlay_dataset)
+
+    if not overlay_dataset:
+        raise HTTPException(status_code=400, detail="No overlay dataset provided")
 
     tile_url += f"/{z}/{x}/{y}"
     if ext:
