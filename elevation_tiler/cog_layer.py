@@ -1,21 +1,18 @@
 from rio_rgbify.encoders import data_to_rgb
-from morecantile import Tile
 from rio_tiler.io import COGReader
 from rio_tiler.models import ImageData
 from pathlib import Path
 import numpy as N
 
-
-def get_raster_tile(dataset: Path, z: int, x: int, y: int, tilesize: int = 512):
+def get_raster_tile(dataset: Path|str, z: int, x: int, y: int, tilesize: int = 512):
     """Get a tile of a raster dataset in terrain RGB format."""
 
     # If we have an odd tilesize, interpret it as a buffer
     # Nearest power of 2
     base_tilesize = tilesize & (tilesize - 1)
-    buffer = 0
     if base_tilesize == 0:
         base_tilesize = tilesize
-        buffer = (tilesize - base_tilesize) / 2
+    buffer = (tilesize - base_tilesize) / 2
 
     # Create a COGReader object
     with COGReader(dataset) as reader:
